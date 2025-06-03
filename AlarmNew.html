@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            background-color: #f0f4f8;
+            color: #1f2937;
+            margin: 0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .container {
+            background-color: white;
+            padding: 1.5rem 2rem 2rem 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-group { margin-bottom: 1rem; }
+        .input-group label.main-label { display: block; margin-bottom: 0.4rem; font-weight: 500; color: #4a5568; text-align: left;}
+        .input-group input[type="number"], .input-group input[type="text"], .input-group textarea {
+            width: 100%; padding: 0.6rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 0.375rem; box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .input-group input[type="number"] { text-align: center; }
+        .input-group input#userNameInput, .input-group textarea#customReminderTextInput { text-align: left; padding: 0.75rem;}
+        .input-group textarea#customReminderTextInput { min-height: 70px; resize: vertical;}
+
+
+        .input-group input:focus, .input-group textarea:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5); }
+        .time-inputs-wrapper { margin-bottom: 1rem; }
+        .time-inputs-container { display: flex; gap: 0.5rem; }
+        .time-inputs-container > div { flex: 1; }
+        .time-inputs-container label.sub-label {font-size: 0.75rem; color: #718096; display:block; text-align: center; margin-top: 0.125rem;}
+
+        .button-group { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; margin-top: 1.5rem; margin-bottom: 1rem; }
+        .button { padding: 0.75rem 1.25rem; border-radius: 0.5rem; font-weight: 600; color: white; cursor: pointer; transition: background-color 0.2s, transform 0.1s; border: none; }
+        .button:active { transform: translateY(1px); }
+        .button:disabled { background-color: #a0aec0; cursor: not-allowed; opacity: 0.7; }
+
+        .button-start { background-color: #48bb78; }
+        .button-start:hover:not(:disabled) { background-color: #38a169; }
+        .button-pause { background-color: #ecc94b; } 
+        .button-pause:hover:not(:disabled) { background-color: #d69e2e; }
+        .button-resume { background-color: #48bb78; } 
+        .button-resume:hover:not(:disabled) { background-color: #38a169; }
+        .button-stop { background-color: #f56565; }
+        .button-stop:hover:not(:disabled) { background-color: #e53e3e; }
+        .button-skip { background-color: #63b3ed; } 
+        .button-skip:hover:not(:disabled) { background-color: #4299e1; }
+        .button-save { background-color: #4299e1; }
+        .button-save:hover:not(:disabled) { background-color: #3182ce; }
+
+
+        #clockContainer {
+            width: 220px;
+            height: 220px;
+            position: relative;
+            margin: 0.5rem auto 1rem auto;
+        }
+        #progressBar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            transition: background 0.2s linear;
+        }
+        #clockTextContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        #currentPhaseDisplay {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 0.1rem;
+            text-transform: uppercase;
+        }
+        #statusDisplay {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #2d3748;
+            line-height: 1;
+        }
+        .message { font-size: 0.875rem; color: #718096; min-height: 20px; margin-top:0rem; margin-bottom: 1rem;}
+
+        #savedProgramsContainer { margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;}
+        #savedProgramsContainer h3 { font-size: 1.1rem; font-weight: 600; color: #2d3748; margin-bottom: 0.75rem; }
+        .saved-program-button-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 0.8rem;
+            background-color: #edf2f7;
+            color: #4a5568;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 0.9rem;
+        }
+        .saved-program-button-item:hover { background-color: #e2e8f0; }
+        .saved-program-name { flex-grow: 1; text-align: left; word-break: break-word; }
+        .delete-program-button {
+            background-color: #fed7d7;
+            color: #c53030;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .delete-program-button:hover { background-color: #feb2b2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="mainHeading" class="text-2xl font-bold mb-4 text-center text-gray-800">Workout Timer</h1>
+
+        <div id="clockContainer">
+            <div id="progressBar"></div>
+            <div id="clockTextContainer">
+                <div id="currentPhaseDisplay">WORK</div>
+                <div id="statusDisplay">00:00</div>
+            </div>
+        </div>
+        <div id="message" class="message">Please set valid times and start.</div>
+
+        <div class="input-group">
+            <label for="userNameInput" class="main-label">Your Name (for voice prompts):</label>
+            <input type="text" id="userNameInput" value="" placeholder="Enter your name (optional)">
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:space-x-3 time-inputs-wrapper">
+            <div class="input-group flex-1 mb-3 sm:mb-0">
+                <label class="main-label">Work Time:</label>
+                <div class="time-inputs-container">
+                    <div>
+                        <input type="number" id="workTimeHours" value="0" min="0" placeholder="H">
+                        <label for="workTimeHours" class="sub-label">Hours</label>
+                    </div>
+                    <div>
+                        <input type="number" id="workTimeMinutes" value="0" min="0" max="59" placeholder="M">
+                        <label for="workTimeMinutes" class="sub-label">Minutes</label>
+                    </div>
+                    <div>
+                        <input type="number" id="workTimeSeconds" value="0" min="0" max="59" placeholder="S">
+                        <label for="workTimeSeconds" class="sub-label">Seconds</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group flex-1">
+                <label class="main-label">Rest Time:</label>
+                <div class="time-inputs-container">
+                     <div>
+                        <input type="number" id="restTimeHours" value="0" min="0" placeholder="H">
+                        <label for="restTimeHours" class="sub-label">Hours</label>
+                    </div>
+                    <div>
+                        <input type="number" id="restTimeMinutes" value="0" min="0" max="59" placeholder="M">
+                        <label for="restTimeMinutes" class="sub-label">Minutes</label>
+                    </div>
+                    <div>
+                        <input type="number" id="restTimeSeconds" value="0" min="0" max="59" placeholder="S">
+                        <label for="restTimeSeconds" class="sub-label">Seconds</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row sm:space-x-3">
+            <div class="input-group sm:flex-1 mb-3 sm:mb-0"> 
+                <label for="customReminderTextInput" class="main-label">Custom Reminders (during work, one per line):</label>
+                <textarea id="customReminderTextInput" placeholder="e.g., Keep pushing!&#10;加油！&#10;Check your form!" rows="3"></textarea>
+            </div>
+            <div class="input-group sm:w-1/3"> 
+                <label for="customReminderIntervalSecondsInput" class="main-label">Remind Every (sec):</label>
+                <input type="number" id="customReminderIntervalSecondsInput" value="30" min="5" placeholder="e.g., 30">
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="numberOfSetsInput" class="main-label">Number of Sets (Work + Rest, 0 for infinite):</label>
+            <input type="number" id="numberOfSetsInput" value="3" min="0">
+        </div>
+
+        <div id="savedProgramsContainer">
+            <h3>Saved Programs</h3>
+            <div id="programsList" class="text-sm text-gray-600">Loading programs...</div>
+        </div>
+
+
+        <div class="button-group">
+            <button id="startButton" class="button button-start">Start</button>
+            <button id="pauseResumeButton" class="button button-pause">Pause</button>
+            <button id="resetButton" class="button button-stop">Stop & Reset</button>
+            <button id="skipPhaseButton" class="button button-skip">Skip Phase</button>
+            <button id="saveProgramButton" class="button button-save">Save Program</button>
+        </div>
+    </div>
+
+    <script>
+        const userNameInput = document.getElementById('userNameInput');
+        const workTimeHoursInput = document.getElementById('workTimeHours');
+        const workTimeMinutesInput = document.getElementById('workTimeMinutes');
+        const workTimeSecondsInput = document.getElementById('workTimeSeconds');
+        const restTimeHoursInput = document.getElementById('restTimeHours');
+        const restTimeMinutesInput = document.getElementById('restTimeMinutes');
+        const restTimeSecondsInput = document.getElementById('restTimeSeconds');
+        const customReminderTextInput = document.getElementById('customReminderTextInput');
+        const customReminderIntervalSecondsInput = document.getElementById('customReminderIntervalSecondsInput');
+        const numberOfSetsInput = document.getElementById('numberOfSetsInput');
+
+        const startButton = document.getElementById('startButton');
+        const pauseResumeButton = document.getElementById('pauseResumeButton');
+        const resetButton = document.getElementById('resetButton');
+        const skipPhaseButton = document.getElementById('skipPhaseButton');
+        const saveProgramButton = document.getElementById('saveProgramButton');
+
+        const statusDisplay = document.getElementById('statusDisplay');
+        const messageDisplay = document.getElementById('message');
+        const currentPhaseDisplay = document.getElementById('currentPhaseDisplay');
+        const progressBar = document.getElementById('progressBar');
+        const programsListDiv = document.getElementById('programsList');
+        let mainHeading;
+
+        let mainIntervalId = null;
+        let preCountdownIntervalId = null;
+        let customReminderIntervalId = null;
+
+        let countdownSeconds = 0;
+        let secondsIntoWorkPhase = 0;
+        let activeRemindersArray = [];
+        let currentReminderIndex = 0;
+        let currentPreCountValue = 0; 
+
+        let currentPhase = 'WORK'; 
+        let timerState = 'IDLE'; 
+        let nextPhaseAfterPreCountdown = 'WORK';
+        let currentPhaseInitialSeconds = 0;
+
+        let targetSets = 0;
+        let completedSets = 0;
+        let isFirstWorkCycleOfSession = true;
+
+        let meowAudio;
+        const meowSoundBase64 = "data:audio/mpeg;base64,SUQzBAAAAAAAIvarR2V0cwAAAAMA Ov//tRwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgaJgAZNAnGoZ39GQ2q38L/woMDv9/SfRkP0ZDaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/9PHU4AmAEkz9NAnPEDkT5yH6ND9HQ/RkPQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADt09PTgCYASPQmhQhYxD5k/cn+lRNOhGjQ/RkPQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAEz0JgKIAWAAAAAAAIMP0ZAUf0ZD0AOj/9PHUAmPAADP0mjQh4xD5kfcn+lQ9OhGjQ/RkPQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/08dQCY8gAM/SaNCHjEPmR9yf6VD06EaND9GQ9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEz9Jm0KIMQ+ZHzJ/pUPToRoCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgBM/SaQgJh5iHzJ/pEA0/RoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgBM/SZNCHjEPmR9yf6VD06EaND9GQ9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/08dQCbcgADP0mjQh4xD5kGcn+lQ9OhGjQ/RkPQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/08dQCbcgAM/SaNCHjEPmR9yf6VD06EaND9GQ9ADo=";
+        
+        const LOCAL_STORAGE_KEY = 'roroWorkoutPrograms_v6'; 
+        
+        let pausedState = null; 
+
+
+        function playMeowSound() {
+            if (!meowAudio) { meowAudio = new Audio(); }
+            if (meowAudio.src !== meowSoundBase64) { meowAudio.src = meowSoundBase64; }
+            meowAudio.play().catch(error => console.error("Error playing meow sound:", error));
+        }
+
+        function formatTime(totalSeconds) { 
+            const minutes = Math.floor(Math.abs(totalSeconds) / 60);
+            const seconds = Math.floor(Math.abs(totalSeconds) % 60);
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function updateClockDisplay(isPreCountdown = false, preCountdownValue = 0) {
+            if (isPreCountdown) {
+                statusDisplay.textContent = String(preCountdownValue);
+                currentPhaseDisplay.textContent = "GET READY";
+                progressBar.style.background = `#e9ecef`;
+            } else {
+                statusDisplay.textContent = formatTime(countdownSeconds);
+                currentPhaseDisplay.textContent = currentPhase;
+                 let progressColor = '#48bb78'; 
+                if (currentPhase === 'REST') progressColor = '#4299e1'; 
+                else if (timerState === 'IDLE' || timerState === 'PAUSED') progressColor = '#a0aec0';
+
+
+                if (currentPhaseInitialSeconds > 0) {
+                    const secondsPassedInPhase = currentPhaseInitialSeconds - countdownSeconds;
+                    const progressPercent = Math.min(100, Math.max(0, (secondsPassedInPhase / currentPhaseInitialSeconds) * 100));
+                    progressBar.style.background = `conic-gradient(${progressColor} ${progressPercent}%, #e9ecef ${progressPercent}%)`;
+                } else {
+                    progressBar.style.background = `#e9ecef`;
+                }
+            }
+        }
+
+        function getPhaseTotalSeconds(hoursIn, minutesIn, secondsIn) {
+            const hours = parseInt(hoursIn.value) || 0;
+            const minutes = parseInt(minutesIn.value) || 0;
+            const seconds = parseInt(secondsIn.value) || 0;
+            if (isNaN(hours) || hours < 0 || isNaN(minutes) || minutes < 0 || minutes > 59 || isNaN(seconds) || seconds < 0 || seconds > 59) { return NaN; }
+            const total = (hours * 3600) + (minutes * 60) + seconds;
+            return total < 1 ? NaN : total;
+        }
+
+        function stopAllIntervals() {
+            if (mainIntervalId) { clearInterval(mainIntervalId); mainIntervalId = null; }
+            if (preCountdownIntervalId) { clearInterval(preCountdownIntervalId); preCountdownIntervalId = null; }
+            clearCustomRemindersInterval();
+        }
+        
+        function stopCoreTimerLogic(isManualStopReset = false) {
+            stopAllIntervals();
+            if ('speechSynthesis' in window && speechSynthesis.speaking) { speechSynthesis.cancel(); }
+
+            if (isManualStopReset) {
+                completedSets = 0;
+                isFirstWorkCycleOfSession = true;
+                countdownSeconds = getPhaseTotalSeconds(workTimeHoursInput, workTimeMinutesInput, workTimeSecondsInput) || 0;
+                currentPhaseInitialSeconds = countdownSeconds;
+                currentPhase = 'WORK';
+                updateClockDisplay();
+                messageDisplay.textContent = `Timer stopped. Set times and press Start, ${userNameInput.value.trim() || "User"}!`;
+            }
+            timerState = 'IDLE';
+            pausedState = null;
+            updateButtonAndInputStates();
+            console.log("Alarm core logic stopped/reset.");
+        }
+
+        let cachedVoices = [];
+        function getSpeechVoices() {
+            if (cachedVoices.length === 0 && 'speechSynthesis' in window) { cachedVoices = speechSynthesis.getVoices(); }
+            return cachedVoices;
+        }
+
+        function updateDynamicHeaders() {
+            const currentName = userNameInput.value.trim();
+            const defaultTimerName = "Workout Timer";
+            if (currentName) {
+                const personalizedTitle = `${currentName}'s Workout Timer`;
+                document.title = personalizedTitle;
+                if (mainHeading) { mainHeading.textContent = personalizedTitle; }
+            } else {
+                document.title = defaultTimerName;
+                if (mainHeading) { mainHeading.textContent = defaultTimerName; }
+            }
+        }
+
+        function speakText(textToSpeak, callbackOnEnd) {
+            if (!('speechSynthesis' in window)) {
+                if (typeof callbackOnEnd === 'function') callbackOnEnd();
+                return;
+            }
+            if (speechSynthesis.speaking) { speechSynthesis.cancel(); }
+
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            const hasChinese = /[\u4e00-\u9fa5]/.test(textToSpeak);
+            utterance.lang = hasChinese ? 'zh-CN' : 'en-US';
+
+            const voices = getSpeechVoices();
+            let selectedVoice = null;
+            const childVoiceKeywords = ['child', 'kid', 'children', 'boy', 'girl', 'lily', 'leo'];
+            const preferredKeywords = ['premium', 'natural', 'enhanced', 'neural', 'zira', 'david'];
+
+            selectedVoice = voices.find(v => v.lang.startsWith(utterance.lang.substring(0,2)) && v.localService && childVoiceKeywords.some(kw => v.name.toLowerCase().includes(kw))) ||
+                            voices.find(v => v.lang.startsWith(utterance.lang.substring(0,2)) && childVoiceKeywords.some(kw => v.name.toLowerCase().includes(kw))) ||
+                            voices.find(v => v.lang.startsWith(utterance.lang.substring(0,2)) && v.localService && preferredKeywords.some(kw => v.name.toLowerCase().includes(kw))) ||
+                            voices.find(v => v.lang.startsWith(utterance.lang.substring(0,2)) && v.localService) ||
+                            voices.find(v => v.lang.startsWith(utterance.lang.substring(0,2)));
+
+            if (!selectedVoice && utterance.lang === 'zh-CN') {
+                 selectedVoice = voices.find(v => v.name.includes('siri') || v.name.includes('Huihui') || v.name.includes('Xiaoxiao'));
+            } else if (!selectedVoice && utterance.lang === 'en-US') {
+                 selectedVoice = voices.find(v => v.lang.startsWith('en'));
+            }
+
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            } else {
+                console.warn(`No specific voice found for lang ${utterance.lang}. Using browser default.`);
+            }
+
+            utterance.onend = () => { if (typeof callbackOnEnd === 'function') callbackOnEnd(); };
+            utterance.onerror = (e) => { console.error("Speech error:", e); if (typeof callbackOnEnd === 'function') callbackOnEnd(); };
+            speechSynthesis.speak(utterance);
+        }
+
+        function stopDueToSetsCompleted() {
+            const userName = userNameInput.value.trim() || "User";
+            const finalText = `${userName}, ${targetSets} set${targetSets !== 1 ? 's' : ''} completed. Well done!`;
+            messageDisplay.textContent = finalText;
+            statusDisplay.textContent = "DONE!";
+            progressBar.style.background = `conic-gradient(#48bb78 100%, #e9ecef 0%)`;
+            speakText(finalText, playMeowSound);
+            stopCoreTimerLogic(false); 
+            timerState = 'IDLE'; 
+            updateButtonAndInputStates();
+        }
+
+
+        function startMainPhaseTimer(phaseType) {
+            currentPhase = phaseType;
+            timerState = phaseType === 'WORK' ? 'RUNNING_WORK' : 'RUNNING_REST';
+            updateButtonAndInputStates();
+
+            if (phaseType === 'WORK') {
+                currentPhaseInitialSeconds = getPhaseTotalSeconds(workTimeHoursInput, workTimeMinutesInput, workTimeSecondsInput);
+                messageDisplay.textContent = `WORK phase, ${userNameInput.value.trim() || "User"}!`;
+            } else { // REST
+                currentPhaseInitialSeconds = getPhaseTotalSeconds(restTimeHoursInput, restTimeMinutesInput, restTimeSecondsInput);
+                messageDisplay.textContent = `REST phase, ${userNameInput.value.trim() || "User"}!`;
+            }
+            countdownSeconds = currentPhaseInitialSeconds;
+            updateClockDisplay();
+            mainIntervalId = setInterval(tick, 1000);
+            if (phaseType === 'WORK') {
+                startCustomReminders();
+            }
+        }
+
+        function initiatePreCountdown(phaseToStart, resumeFromCount = null) {
+            stopAllIntervals();
+            timerState = 'PRECOUNTDOWN';
+            updateButtonAndInputStates();
+
+            nextPhaseAfterPreCountdown = phaseToStart;
+            currentPreCountValue = resumeFromCount !== null ? resumeFromCount : 3;
+
+            updateClockDisplay(true, currentPreCountValue);
+            if(currentPreCountValue === 3 && resumeFromCount === null) speakText(String(currentPreCountValue));
+
+            preCountdownIntervalId = setInterval(() => {
+                currentPreCountValue--;
+                if (currentPreCountValue > 0) {
+                    updateClockDisplay(true, currentPreCountValue);
+                    speakText(String(currentPreCountValue));
+                } else {
+                    clearInterval(preCountdownIntervalId);
+                    preCountdownIntervalId = null;
+                    updateClockDisplay(true, "Go!");
+                    speakText(`Start ${nextPhaseAfterPreCountdown}!`, () => {
+                        startMainPhaseTimer(nextPhaseAfterPreCountdown);
+                    });
+                }
+            }, 1000);
+        }
+
+        function processPhaseEnd(skipped = false) {
+            const userName = userNameInput.value.trim() || "User";
+            let phaseEndMessage;
+            let nextActionIsPreCountdownForWork = false;
+            let nextActionIsStartRest = false;
+
+            if (currentPhase === 'WORK') {
+                clearCustomRemindersInterval();
+                if (!skipped) {
+                    const workTotalSeconds = getPhaseTotalSeconds(workTimeHoursInput, workTimeMinutesInput, workTimeSecondsInput);
+                    let dText = "";
+                    const hours = Math.floor(workTotalSeconds / 3600);
+                    const minutes = Math.floor((workTotalSeconds % 3600) / 60);
+                    const seconds = workTotalSeconds % 60;
+                    if (hours > 0) dText += `${hours}h `;
+                    if (minutes > 0) dText += `${minutes}m `;
+                    if (seconds > 0 || dText === "") dText += `${seconds}s`; // show seconds if it's the only unit or non-zero
+                    dText = dText.trim();
+                    phaseEndMessage = `${userName}, ${dText} work done. Time to rest.`;
+                }
+                nextActionIsStartRest = true;
+            } else { // currentPhase === 'REST'
+                completedSets++;
+                console.log(`Set ${completedSets} of ${targetSets > 0 ? targetSets : 'unlimited'} completed after rest.`);
+                if (targetSets > 0 && completedSets >= targetSets) {
+                    stopDueToSetsCompleted();
+                    return;
+                } else {
+                    if (!skipped) {
+                        const restTotalSeconds = getPhaseTotalSeconds(restTimeHoursInput, restTimeMinutesInput, restTimeSecondsInput);
+                        let dText = "";
+                        const hours = Math.floor(restTotalSeconds / 3600);
+                        const minutes = Math.floor((restTotalSeconds % 3600) / 60);
+                        const seconds = restTotalSeconds % 60;
+                        if (hours > 0) dText += `${hours}h `;
+                        if (minutes > 0) dText += `${minutes}m `;
+                        if (seconds > 0 || dText === "") dText += `${seconds}s`;
+                        dText = dText.trim();
+                        phaseEndMessage = `${userName}, ${dText} rest done. Time to work.`;
+                    }
+                    nextActionIsPreCountdownForWork = true;
+                }
+            }
+
+            const callback = () => {
+                if (!skipped) playMeowSound();
+                if (nextActionIsStartRest) {
+                    startMainPhaseTimer('REST');
+                } else if (nextActionIsPreCountdownForWork) {
+                    initiatePreCountdown('WORK');
+                }
+            };
+
+            if (phaseEndMessage && !skipped) {
+                speakText(phaseEndMessage, callback);
+            } else {
+                callback(); 
+            }
+        }
+
+        function tick() {
+            if (countdownSeconds > 0) {
+                countdownSeconds--;
+                updateClockDisplay();
+            } else {
+                clearInterval(mainIntervalId);
+                mainIntervalId = null;
+                processPhaseEnd();
+            }
+        }
+
+        function startCustomReminders(isResuming = false) {
+            clearCustomRemindersInterval();
+            const reminderTextRaw = customReminderTextInput.value.trim();
+            if (!reminderTextRaw) return;
+
+            if (!isResuming || !pausedState || !pausedState.activeRemindersArray) {
+                activeRemindersArray = reminderTextRaw.split('\n').map(r => r.trim()).filter(r => r.length > 0);
+            } else {
+                 activeRemindersArray = pausedState.activeRemindersArray; 
+            }
+
+            if (activeRemindersArray.length === 0) return;
+
+            const reminderInterval = parseInt(customReminderIntervalSecondsInput.value);
+            const workPhaseDuration = getPhaseTotalSeconds(workTimeHoursInput, workTimeMinutesInput, workTimeSecondsInput);
+            if (isNaN(reminderInterval) || reminderInterval <= 0 || workPhaseDuration < reminderInterval) {
+                return;
+            }
+
+            if (!isResuming) {
+                 currentReminderIndex = 0;
+                 secondsIntoWorkPhase = 0;
+            }
+            
+            customReminderIntervalId = setInterval(() => {
+                if (timerState === 'RUNNING_WORK' && mainIntervalId && countdownSeconds > 0) {
+                    secondsIntoWorkPhase++;
+                    if (secondsIntoWorkPhase > 0 && secondsIntoWorkPhase % reminderInterval === 0 && countdownSeconds > 3) {
+                        if (!speechSynthesis.speaking && activeRemindersArray.length > 0) {
+                            const reminderToSpeak = activeRemindersArray[currentReminderIndex];
+                            speakText(reminderToSpeak);
+                            currentReminderIndex = (currentReminderIndex + 1) % activeRemindersArray.length;
+                        }
+                    }
+                } else if (timerState !== 'PAUSED') { 
+                    clearCustomRemindersInterval();
+                }
+            }, 1000);
+        }
+        
+        function clearCustomRemindersInterval() {
+             if (customReminderIntervalId) {
+                clearInterval(customReminderIntervalId);
+                customReminderIntervalId = null;
+            }
+        }
+
+        function clearCustomRemindersStateAndInterval() {
+            clearCustomRemindersInterval();
+            secondsIntoWorkPhase = 0;
+            activeRemindersArray = [];
+            currentReminderIndex = 0;
+        }
+
+
+        async function startTimer() {
+            if (typeof speechSynthesis === 'undefined') { messageDisplay.textContent = "Speech synthesis not supported."; return; }
+            if (getSpeechVoices().length === 0) { await new Promise(resolve => setTimeout(resolve, 250)); }
+
+            stopCoreTimerLogic(false); 
+            completedSets = 0; 
+            isFirstWorkCycleOfSession = true;
+
+            const workTotalSecondsVal = getPhaseTotalSeconds(workTimeHoursInput, workTimeMinutesInput, workTimeSecondsInput);
+            const restTotalSecondsVal = getPhaseTotalSeconds(restTimeHoursInput, restTimeMinutesInput, restTimeSecondsInput);
+            targetSets = parseInt(numberOfSetsInput.value);
+            const userName = userNameInput.value.trim() || "User";
+
+            if (isNaN(workTotalSecondsVal)) { messageDisplay.textContent = `Set valid Work Time, ${userName}! (min 1s).`; return; }
+            if (isNaN(restTotalSecondsVal)) { messageDisplay.textContent = `Set valid Rest Time, ${userName}! (min 1s).`; return; }
+            if (isNaN(targetSets) || targetSets < 0) { messageDisplay.textContent = "Set valid Number of Sets."; return; }
+
+            timerState = 'PRECOUNTDOWN'; 
+            updateButtonAndInputStates();
+
+            if (isFirstWorkCycleOfSession) {
+                const welcomeMsg = `${userName}, I am happy to time for you! `;
+                speakText(welcomeMsg, () => {
+                    initiatePreCountdown('WORK');
+                });
+                isFirstWorkCycleOfSession = false;
+            } else {
+                initiatePreCountdown('WORK');
+            }
+        }
+        
+        function handleResetButton() {
+            stopCoreTimerLogic(true); 
+            clearCustomRemindersStateAndInterval(); 
+        }
+        
+        function handlePauseResumeButton() {
+            if (timerState === 'PAUSED') { 
+                if (pausedState) {
+                    messageDisplay.textContent = "Resuming...";
+                    speakText("Resuming.");
+
+                    countdownSeconds = pausedState.countdownSeconds;
+                    currentPhase = pausedState.currentPhase;
+                    currentPhaseInitialSeconds = pausedState.currentPhaseInitialSeconds;
+                    secondsIntoWorkPhase = pausedState.secondsIntoWorkPhase;
+                    currentReminderIndex = pausedState.currentReminderIndex;
+                    activeRemindersArray = pausedState.activeRemindersArray; 
+                    completedSets = pausedState.completedSets;
+                    targetSets = parseInt(numberOfSetsInput.value); 
+                    nextPhaseAfterPreCountdown = pausedState.nextPhaseAfterPreCountdown;
+                    
+                    timerState = pausedState.timerStateBeforePause; 
+                    updateButtonAndInputStates();
+
+                    if (timerState === 'PRECOUNTDOWN') {
+                        initiatePreCountdown(pausedState.nextPhaseAfterPreCountdown, pausedState.preCountValue);
+                    } else if (timerState === 'RUNNING_WORK' || timerState === 'RUNNING_REST') {
+                        updateClockDisplay();
+                        mainIntervalId = setInterval(tick, 1000);
+                        if (timerState === 'RUNNING_WORK') {
+                            startCustomReminders(true); 
+                        }
+                    }
+                    pausedState = null;
+                }
+            } else if (timerState.startsWith('RUNNING_') || timerState === 'PRECOUNTDOWN') { 
+                pausedState = {
+                    countdownSeconds,
+                    currentPhase,
+                    currentPhaseInitialSeconds,
+                    secondsIntoWorkPhase,
+                    currentReminderIndex,
+                    activeRemindersArray: [...activeRemindersArray], 
+                    completedSets,
+                    preCountValue: (timerState === 'PRECOUNTDOWN' ? currentPreCountValue : null),
+                    nextPhaseAfterPreCountdown,
+                    timerStateBeforePause: timerState
+                };
+                
+                stopAllIntervals();
+                if ('speechSynthesis' in window && speechSynthesis.speaking) { speechSynthesis.cancel(); }
+                
+                timerState = 'PAUSED';
+                updateButtonAndInputStates();
+                messageDisplay.textContent = "Timer Paused.";
+                speakText("Paused.");
+            }
+        }
+
+        function handleSkipPhaseButton() {
+            if (!(timerState === 'RUNNING_WORK' || timerState === 'RUNNING_REST')) return; 
+
+            stopAllIntervals();
+            if ('speechSynthesis' in window && speechSynthesis.speaking) { speechSynthesis.cancel(); }
+
+            let skipMessage = "";
+            if (currentPhase === 'WORK') {
+                skipMessage = "Skipping to Rest.";
+                speakText(skipMessage, () => processPhaseEnd(true)); 
+            } else { 
+                 if (targetSets > 0 && (completedSets + 1) >= targetSets) {
+                    skipMessage = "Skipping to end of workout.";
+                     speakText(skipMessage, () => {
+                        completedSets++; 
+                        stopDueToSetsCompleted();
+                    });
+                } else {
+                    skipMessage = "Skipping to next Work phase.";
+                    speakText(skipMessage, () => processPhaseEnd(true)); 
+                }
+            }
+        }
+
+        // Helper function to format H, M, S for display in program name
+        function formatTimeUnitsForDisplay(h, m, s) {
+            let displayStr = "";
+            if (h > 0) displayStr += `${h}h`;
+            if (m > 0) displayStr += (displayStr ? " " : "") + `${m}m`;
+            // Only show seconds if it's non-zero OR if H and M are both zero (so "0s" can be shown for 0 total time if needed)
+            if (s > 0 || displayStr === "") displayStr += (displayStr ? " " : "") + `${s}s`;
+            return displayStr.trim(); // Trim in case displayStr is "" and s is 0, to avoid " 0s"
+        }
+
+        function handleSaveProgram() {
+            const workH = parseInt(workTimeHoursInput.value) || 0;
+            const workM = parseInt(workTimeMinutesInput.value) || 0;
+            const workS = parseInt(workTimeSecondsInput.value) || 0;
+            const restH = parseInt(restTimeHoursInput.value) || 0;
+            const restM = parseInt(restTimeMinutesInput.value) || 0;
+            const restS = parseInt(restTimeSecondsInput.value) || 0;
+            const currentUserName = userNameInput.value.trim() || "User";
+
+            if ((workH * 3600 + workM * 60 + workS) < 1) { messageDisplay.textContent = "Work time must be at least 1 second to save."; return; }
+            if ((restH * 3600 + restM * 60 + restS) < 1) { messageDisplay.textContent = "Rest time must be at least 1 second to save."; return; }
+            
+            const workDisplay = formatTimeUnitsForDisplay(workH, workM, workS);
+            const restDisplay = formatTimeUnitsForDisplay(restH, restM, restS);
+
+            const defaultProgramName = `${currentUserName} - W:${workDisplay} R:${restDisplay} Sets:${parseInt(numberOfSetsInput.value) || 0}`;
+            const customProgramName = prompt("Enter a name for this program (or leave blank for default):", "");
+
+            const finalProgramName = (customProgramName === null) ? defaultProgramName : (customProgramName.trim() || defaultProgramName);
+
+            const programData = {
+                id: Date.now().toString(),
+                programName: finalProgramName,
+                userName: currentUserName,
+                workHours: workH, workMinutes: workM, workSeconds: workS,
+                restHours: restH, restMinutes: restM, restSeconds: restS,
+                customReminderText: customReminderTextInput.value,
+                customReminderInterval: parseInt(customReminderIntervalSecondsInput.value) || 30,
+                numberOfSets: parseInt(numberOfSetsInput.value) || 0,
+                timestamp: Date.now()
+            };
+
+            try {
+                let programs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
+                programs.push(programData);
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(programs));
+                messageDisplay.textContent = "Program saved!";
+                loadAndRenderProgramsFromLocalStorage();
+                setTimeout(() => { if(timerState === 'IDLE') messageDisplay.textContent = "Set times and press Start."; }, 2000);
+            } catch (error) {
+                console.error("Error saving program to localStorage: ", error);
+                messageDisplay.textContent = "Failed to save program.";
+            }
+        }
+
+        function loadProgram(programData) {
+            stopCoreTimerLogic(true); 
+            userNameInput.value = programData.userName;
+            workTimeHoursInput.value = programData.workHours || 0;
+            workTimeMinutesInput.value = programData.workMinutes || 0; // Ensure minutes also default if somehow missing
+            workTimeSecondsInput.value = programData.workSeconds || 0; // Ensure seconds also default
+            restTimeHoursInput.value = programData.restHours || 0;
+            restTimeMinutesInput.value = programData.restMinutes || 0;
+            restTimeSecondsInput.value = programData.restSeconds || 0;
+            customReminderTextInput.value = programData.customReminderText || "";
+            customReminderIntervalSecondsInput.value = programData.customReminderInterval || 30;
+            numberOfSetsInput.value = programData.numberOfSets || 0; // Default sets if missing
+
+            isFirstWorkCycleOfSession = true;
+            updateDynamicHeaders();
+            const initialWorkTotalSeconds = getPhaseTotalSeconds(workTimeHoursInput, workTimeMinutesInput, workTimeSecondsInput);
+            currentPhaseInitialSeconds = isNaN(initialWorkTotalSeconds) ? 0 : initialWorkTotalSeconds;
+            countdownSeconds = currentPhaseInitialSeconds;
+            currentPhase = 'WORK';
+            updateClockDisplay();
+            messageDisplay.textContent = `Loaded: ${programData.programName.substring(0, 40)}${programData.programName.length > 40 ? '...' : ''}`;
+            timerState = 'IDLE';
+            updateButtonAndInputStates();
+        }
+
+        function deleteProgram(programId) {
+            try {
+                let programs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
+                programs = programs.filter(p => p.id !== programId);
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(programs));
+                messageDisplay.textContent = "Program deleted.";
+                loadAndRenderProgramsFromLocalStorage();
+                setTimeout(() => { if(timerState === 'IDLE') messageDisplay.textContent = "Set times and press Start."; }, 2000);
+            } catch (error) {
+                console.error("Error deleting program from localStorage: ", error);
+                messageDisplay.textContent = "Failed to delete program.";
+            }
+        }
+
+        function renderSavedPrograms(programs) {
+            programsListDiv.innerHTML = '';
+            if (programs.length === 0) {
+                programsListDiv.textContent = "No saved programs yet. Use 'Save Program' to add one!";
+                return;
+            }
+            programs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+            programs.forEach(program => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('saved-program-button-item');
+                itemDiv.addEventListener('click', () => loadProgram(program));
+
+                const nameSpan = document.createElement('span');
+                nameSpan.classList.add('saved-program-name');
+                nameSpan.textContent = program.programName;
+                itemDiv.appendChild(nameSpan);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.classList.add('delete-program-button');
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.title = "Delete this program";
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteProgram(program.id);
+                });
+                itemDiv.appendChild(deleteBtn);
+                programsListDiv.appendChild(itemDiv);
+            });
+        }
+
+        function loadAndRenderProgramsFromLocalStorage() {
+            programsListDiv.textContent = "Loading programs...";
+            try {
+                const programs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
+                renderSavedPrograms(programs);
+            } catch (error) {
+                console.error("Error loading programs from localStorage:", error);
+                programsListDiv.textContent = "Error loading programs.";
+            }
+        }
+        
+        function updateButtonAndInputStates() {
+            const isIdle = timerState === 'IDLE';
+            const isRunning = timerState.startsWith('RUNNING_') || timerState === 'PRECOUNTDOWN';
+            const isPaused = timerState === 'PAUSED';
+            const isPrecountdown = timerState === 'PRECOUNTDOWN';
+
+            startButton.disabled = isRunning || isPaused;
+            pauseResumeButton.disabled = !isRunning && !isPaused;
+            resetButton.disabled = isIdle && !pausedState; 
+            skipPhaseButton.disabled = !isRunning || isPaused || isPrecountdown; 
+            saveProgramButton.disabled = isRunning || isPaused;
+
+            if (isPaused) {
+                pauseResumeButton.textContent = "Resume";
+                pauseResumeButton.classList.remove('button-pause');
+                pauseResumeButton.classList.add('button-resume');
+            } else {
+                pauseResumeButton.textContent = "Pause";
+                pauseResumeButton.classList.remove('button-resume');
+                pauseResumeButton.classList.add('button-pause');
+            }
+            
+            const inputsDisabled = isRunning || isPaused;
+            userNameInput.disabled = inputsDisabled;
+            workTimeHoursInput.disabled = inputsDisabled; workTimeMinutesInput.disabled = inputsDisabled; workTimeSecondsInput.disabled = inputsDisabled;
+            restTimeHoursInput.disabled = inputsDisabled; restTimeMinutesInput.disabled = inputsDisabled; restTimeSecondsInput.disabled = inputsDisabled;
+            customReminderTextInput.disabled = inputsDisabled; customReminderIntervalSecondsInput.disabled = inputsDisabled;
+            numberOfSetsInput.disabled = inputsDisabled;
+        }
+
+
+        function initializeUI() {
+            mainHeading = document.getElementById('mainHeading');
+            updateDynamicHeaders();
+            userNameInput.addEventListener('input', updateDynamicHeaders);
+            
+            const userName = userNameInput.value.trim() || "User";
+            workTimeHoursInput.value = Math.max(0, parseInt(workTimeHoursInput.value) || 0);
+            workTimeMinutesInput.value = Math.max(0, Math.min(59, parseInt(workTimeMinutesInput.value) || 0));
+            workTimeSecondsInput.value = Math.max(0, Math.min(59, parseInt(workTimeSecondsInput.value) || 0));
+            restTimeHoursInput.value = Math.max(0, parseInt(restTimeHoursInput.value) || 0);
+            restTimeMinutesInput.value = Math.max(0, Math.min(59, parseInt(restTimeMinutesInput.value) || 0));
+            restTimeSecondsInput.value = Math.max(0, Math.min(59, parseInt(restTimeSecondsInput.value) || 0));
+
+            let initialWorkTotalSeconds = getPhaseTotalSeconds(workTimeHoursInput, workTimeMinutesInput, workTimeSecondsInput);
+            if (isNaN(initialWorkTotalSeconds)) initialWorkTotalSeconds = 0;
+
+            currentPhase = 'WORK';
+            currentPhaseInitialSeconds = initialWorkTotalSeconds;
+            countdownSeconds = initialWorkTotalSeconds;
+            updateClockDisplay();
+
+            if (isNaN(getPhaseTotalSeconds(workTimeHoursInput, workTimeMinutesInput, workTimeSecondsInput)) || isNaN(getPhaseTotalSeconds(restTimeHoursInput, restTimeMinutesInput, restTimeSecondsInput))) {
+                 messageDisplay.textContent = `Set Work & Rest times (each >0s), ${userName}!`;
+            } else {
+                 messageDisplay.textContent = `Set times and press Start, ${userName}!`;
+            }
+            
+            timerState = 'IDLE';
+            updateButtonAndInputStates();
+            loadAndRenderProgramsFromLocalStorage();
+        }
+
+        startButton.addEventListener('click', startTimer);
+        pauseResumeButton.addEventListener('click', handlePauseResumeButton);
+        resetButton.addEventListener('click', handleResetButton);
+        skipPhaseButton.addEventListener('click', handleSkipPhaseButton);
+        saveProgramButton.addEventListener('click', handleSaveProgram);
+
+
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = () => { cachedVoices = speechSynthesis.getVoices(); };
+            setTimeout(() => {
+                cachedVoices = speechSynthesis.getVoices();
+                 if (cachedVoices.length === 0 && speechSynthesis.onvoiceschanged === null) { 
+                    console.warn("Could not get voice list immediately. Trying again after a delay or user interaction might be needed.");
+                }
+            }, 500);
+        } else {
+            messageDisplay.textContent = "Notice: Your browser may not support speech synthesis.";
+        }
+
+        initializeUI();
+    </script>
+</body>
+</html>
